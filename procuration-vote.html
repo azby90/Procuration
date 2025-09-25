@@ -129,6 +129,35 @@
             background-color: #0056b3;
         }
 
+        .share-button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px auto;
+            display: block;
+        }
+
+        .share-button:hover {
+            background-color: #218838;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px auto;
+            max-width: 400px;
+        }
+
+        .button-group button {
+            flex: 1;
+            margin: 0;
+        }
+
         /* Styles pour mobile */
         @media (max-width: 768px) {
             body {
@@ -191,12 +220,18 @@
                 width: 100% !important;
             }
 
-            .print-button {
+            .print-button, .share-button {
                 width: 100%;
                 max-width: 300px;
                 padding: 15px 24px;
                 font-size: 18px;
-                margin: 30px auto;
+                margin: 10px auto;
+            }
+
+            .button-group {
+                flex-direction: column;
+                max-width: 300px;
+                gap: 10px;
             }
 
             .header {
@@ -231,7 +266,7 @@
                 padding: 20px;
             }
 
-            .print-button {
+            .print-button, .share-button {
                 display: none;
             }
 
@@ -348,12 +383,100 @@
             </div>
         </div>
 
-        <button class="print-button" onclick="imprimerDocument()">Imprimer</button>
+        <div class="button-group">
+            <button class="share-button" onclick="partagerFormulaire()">📤 Partager</button>
+            <button class="print-button" onclick="imprimerDocument()">🖨️ Imprimer</button>
+        </div>
     </div>
 
     <script>
         function imprimerDocument() {
             window.print();
+        }
+
+        function partagerFormulaire() {
+            const url = window.location.href;
+            const titre = "Procuration de Vote - Élections Législatives 2025";
+            const texte = "Formulaire de procuration de vote pour les élections législatives du 27 septembre 2025";
+
+            // Vérifier si l'API Web Share est disponible (mobiles)
+            if (navigator.share) {
+                navigator.share({
+                    title: titre,
+                    text: texte,
+                    url: url
+                }).then(() => {
+                    console.log('Partage réussi');
+                }).catch((error) => {
+                    console.log('Erreur de partage:', error);
+                    partageAlternatif(url, titre, texte);
+                });
+            } else {
+                partageAlternatif(url, titre, texte);
+            }
+        }
+
+        function partageAlternatif(url, titre, texte) {
+            // Copier le lien dans le presse-papiers
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('Lien copié dans le presse-papiers !\n\n' + url);
+                }).catch(() => {
+                    afficherOptionsPartage(url, titre, texte);
+                });
+            } else {
+                afficherOptionsPartage(url, titre, texte);
+            }
+        }
+
+        function afficherOptionsPartage(url, titre, texte) {
+            const message = `${titre}\n\n${texte}\n\n${url}`;
+            const encodedMessage = encodeURIComponent(message);
+            const encodedUrl = encodeURIComponent(url);
+
+            const options = [
+                `WhatsApp: https://wa.me/?text=${encodedMessage}`,
+                `Email: mailto:?subject=${encodeURIComponent(titre)}&body=${encodedMessage}`,
+                `SMS: sms:?body=${encodedMessage}`,
+                `Lien: ${url}`
+            ];
+
+            const choix = prompt(
+                "Choisissez votre méthode de partage :\n\n" +
+                "1 - WhatsApp\n" +
+                "2 - Email\n" +
+                "3 - SMS\n" +
+                "4 - Copier le lien\n\n" +
+                "Entrez le numéro (1-4) :"
+            );
+
+            switch(choix) {
+                case '1':
+                    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+                    break;
+                case '2':
+                    window.location.href = `mailto:?subject=${encodeURIComponent(titre)}&body=${encodedMessage}`;
+                    break;
+                case '3':
+                    window.location.href = `sms:?body=${encodedMessage}`;
+                    break;
+                case '4':
+                    // Sélectionner le texte pour copie manuelle
+                    const textArea = document.createElement('textarea');
+                    textArea.value = url;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        alert('Lien copié !');
+                    } catch (err) {
+                        alert('Lien à copier:\n' + url);
+                    }
+                    document.body.removeChild(textArea);
+                    break;
+                default:
+                    alert('Lien à partager:\n' + url);
+            }
         }
 
         // Optionnel : sauvegarde automatique des données dans le localStorage
