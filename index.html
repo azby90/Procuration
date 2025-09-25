@@ -147,14 +147,12 @@
 
         .button-group {
             display: flex;
-            gap: 10px;
             justify-content: center;
             margin: 20px auto;
             max-width: 400px;
         }
 
         .button-group button {
-            flex: 1;
             margin: 0;
         }
 
@@ -220,18 +218,12 @@
                 width: 100% !important;
             }
 
-            .print-button, .share-button {
+            .share-button {
                 width: 100%;
                 max-width: 300px;
                 padding: 15px 24px;
                 font-size: 18px;
                 margin: 10px auto;
-            }
-
-            .button-group {
-                flex-direction: column;
-                max-width: 300px;
-                gap: 10px;
             }
 
             .header {
@@ -356,7 +348,7 @@
                 margin-bottom: 5px;
             }
 
-            .print-button, .share-button, .button-group {
+            .share-button, .button-group {
                 display: none !important;
             }
 
@@ -476,8 +468,7 @@
         </div>
 
         <div class="button-group">
-            <button class="share-button" onclick="partagerFormulaireEnPDF()">📤 Partager PDF</button>
-            <button class="print-button" onclick="imprimerDocument()">🖨️ Imprimer</button>
+            <button class="share-button" onclick="partagerFormulaireEnPDF()">🗎 Générer et Partager PDF</button>
         </div>
     </div>
 
@@ -485,9 +476,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <script>
-        function imprimerDocument() {
-            window.print();
-        }
 
         async function partagerFormulaireEnPDF() {
             try {
