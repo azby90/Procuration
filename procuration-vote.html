@@ -479,13 +479,17 @@
 
         async function partagerFormulaireEnPDF() {
             try {
-                // Masquer les boutons temporairement
+                // Vérifier que les éléments existent
                 const buttonGroup = document.querySelector('.button-group');
-                buttonGroup.style.display = 'none';
-
-                // Forcer le rendu desktop pour la capture PDF
                 const container = document.querySelector('.container');
                 const body = document.body;
+
+                if (!buttonGroup || !container) {
+                    throw new Error('Éléments du formulaire introuvables');
+                }
+
+                // Masquer les boutons temporairement
+                buttonGroup.style.display = 'none';
 
                 // Sauvegarder les styles originaux
                 const originalContainerStyle = container.getAttribute('style') || '';
@@ -572,7 +576,6 @@
                 await new Promise(resolve => setTimeout(resolve, 300));
 
                 // Capturer le formulaire avec paramètres optimaux
-                const container = document.querySelector('.container');
                 const canvas = await html2canvas(container, {
                     scale: 3, // Résolution plus élevée pour meilleure qualité
                     useCORS: true,
