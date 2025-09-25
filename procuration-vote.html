@@ -486,37 +486,78 @@
                 // Attendre un peu pour que le DOM se mette à jour
                 await new Promise(resolve => setTimeout(resolve, 100));
 
-                // Capturer le formulaire
+                // Capturer le formulaire avec paramètres optimaux
                 const container = document.querySelector('.container');
                 const canvas = await html2canvas(container, {
-                    scale: 2,
+                    scale: 3, // Résolution plus élevée pour meilleure qualité
                     useCORS: true,
                     allowTaint: true,
                     backgroundColor: '#ffffff',
                     width: container.offsetWidth,
-                    height: container.offsetHeight
+                    height: container.offsetHeight,
+                    logging: false,
+                    imageTimeout: 0,
+                    removeContainer: false,
+                    foreignObjectRendering: false, // Meilleur rendu des polices
+                    letterRendering: true, // Améliore le rendu du texte
+                    onclone: function(clonedDoc) {
+                        // Forcer le rendu des polices dans le clone
+                        const style = clonedDoc.createElement('style');
+                        style.innerHTML = `
+                            * {
+                                font-family: 'Times New Roman', serif !important;
+                                -webkit-font-smoothing: antialiased !important;
+                                -moz-osx-font-smoothing: grayscale !important;
+                            }
+                        `;
+                        clonedDoc.head.appendChild(style);
+                    }
                 });
 
                 // Restaurer les boutons
                 buttonGroup.style.display = 'flex';
 
-                // Créer le PDF
+                // Créer le PDF avec qualité optimale
                 const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('portrait', 'mm', 'a4');
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
+                    putOnlyUsedFonts: true,
+                    compress: false, // Pas de compression pour qualité maximale
+                    precision: 16
+                });
 
-                const imgWidth = 210; // A4 width in mm
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                // Dimensions exactes A4
+                const pageWidth = 210;
+                const pageHeight = 297;
+                const margin = 10;
+                const contentWidth = pageWidth - (2 * margin);
+                const contentHeight = pageHeight - (2 * margin);
 
-                // Si l'image est trop haute, l'ajuster
-                if (imgHeight > 297) { // A4 height in mm
-                    const ratio = 297 / imgHeight;
-                    const adjustedWidth = imgWidth * ratio;
-                    const adjustedHeight = 297;
-                    pdf.addImage(canvas.toDataURL('image/png'), 'PNG',
-                        (210 - adjustedWidth) / 2, 0, adjustedWidth, adjustedHeight);
+                // Calculer les dimensions avec ratio exact
+                const canvasRatio = canvas.width / canvas.height;
+                const contentRatio = contentWidth / contentHeight;
+
+                let finalWidth, finalHeight, offsetX, offsetY;
+
+                if (canvasRatio > contentRatio) {
+                    // Image plus large que la zone → ajuster par largeur
+                    finalWidth = contentWidth;
+                    finalHeight = contentWidth / canvasRatio;
+                    offsetX = margin;
+                    offsetY = margin + (contentHeight - finalHeight) / 2;
                 } else {
-                    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
+                    // Image plus haute que la zone → ajuster par hauteur
+                    finalHeight = contentHeight;
+                    finalWidth = contentHeight * canvasRatio;
+                    offsetX = margin + (contentWidth - finalWidth) / 2;
+                    offsetY = margin;
                 }
+
+                // Ajouter l'image avec qualité maximale
+                const imgData = canvas.toDataURL('image/jpeg', 1.0); // Qualité maximale JPEG
+                pdf.addImage(imgData, 'JPEG', offsetX, offsetY, finalWidth, finalHeight, '', 'NONE');
 
                 // Générer le nom du fichier avec date
                 const aujourd = new Date();
