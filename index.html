@@ -483,8 +483,93 @@
                 const buttonGroup = document.querySelector('.button-group');
                 buttonGroup.style.display = 'none';
 
-                // Attendre un peu pour que le DOM se mette à jour
-                await new Promise(resolve => setTimeout(resolve, 100));
+                // Forcer le rendu desktop pour la capture PDF
+                const container = document.querySelector('.container');
+                const body = document.body;
+
+                // Sauvegarder les styles originaux
+                const originalContainerStyle = container.getAttribute('style') || '';
+                const originalBodyStyle = body.getAttribute('style') || '';
+                const originalBodyClass = body.className;
+
+                // Appliquer temporairement les styles desktop
+                body.classList.add('pdf-capture-mode');
+                body.style.cssText += `
+                    font-size: 14px !important;
+                    padding: 20px !important;
+                    max-width: 800px !important;
+                    margin: 0 auto !important;
+                `;
+                container.style.cssText += `
+                    padding: 40px !important;
+                    transform: none !important;
+                    width: auto !important;
+                    max-width: none !important;
+                `;
+
+                // Forcer les styles desktop sur tous les éléments du formulaire
+                const styleOverride = document.createElement('style');
+                styleOverride.id = 'pdf-capture-override';
+                styleOverride.innerHTML = `
+                    .pdf-capture-mode .form-row {
+                        display: flex !important;
+                        flex-direction: row !important;
+                        gap: 20px !important;
+                    }
+                    .pdf-capture-mode .form-field {
+                        flex-direction: row !important;
+                        align-items: baseline !important;
+                        gap: 10px !important;
+                    }
+                    .pdf-capture-mode label {
+                        white-space: nowrap !important;
+                        min-width: fit-content !important;
+                        font-size: 14px !important;
+                    }
+                    .pdf-capture-mode input[type="text"],
+                    .pdf-capture-mode input[type="date"] {
+                        padding: 5px 8px !important;
+                        font-size: 14px !important;
+                        border: none !important;
+                        border-bottom: 1px solid #333 !important;
+                        background: transparent !important;
+                        min-height: auto !important;
+                    }
+                    .pdf-capture-mode .signature-section {
+                        flex-direction: row !important;
+                        justify-content: space-between !important;
+                        align-items: flex-end !important;
+                        gap: 0 !important;
+                    }
+                    .pdf-capture-mode .signature-box {
+                        width: 200px !important;
+                        max-width: none !important;
+                    }
+                    .pdf-capture-mode .date-field {
+                        flex-direction: row !important;
+                        gap: 10px !important;
+                        justify-content: center !important;
+                    }
+                    .pdf-capture-mode .date-field input {
+                        width: 150px !important;
+                    }
+                    .pdf-capture-mode .header {
+                        font-size: 18px !important;
+                        margin-bottom: 30px !important;
+                    }
+                    .pdf-capture-mode .section-title {
+                        font-size: 14px !important;
+                        margin: 30px 0 15px 0 !important;
+                    }
+                    .pdf-capture-mode .text-content {
+                        font-size: 14px !important;
+                        line-height: 1.6 !important;
+                    }
+                `;
+                document.head.appendChild(styleOverride);
+
+                // Attendre que les styles s'appliquent
+                await new Promise(resolve => setTimeout(resolve, 300));
 
                 // Capturer le formulaire avec paramètres optimaux
                 const container = document.querySelector('.container');
@@ -513,6 +598,17 @@
                         clonedDoc.head.appendChild(style);
                     }
                 });
+
+                // Restaurer les styles originaux
+                body.className = originalBodyClass;
+                body.setAttribute('style', originalBodyStyle);
+                container.setAttribute('style', originalContainerStyle);
+
+                // Supprimer les styles temporaires
+                const tempStyle = document.getElementById('pdf-capture-override');
+                if (tempStyle) {
+                    tempStyle.remove();
+                }
 
                 // Restaurer les boutons
                 buttonGroup.style.display = 'flex';
@@ -598,8 +694,16 @@
                 console.error('Erreur lors de la génération du PDF:', error);
                 alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
 
-                // Restaurer les boutons en cas d'erreur
+                // Restaurer les styles et boutons en cas d'erreur
+                const body = document.body;
+                const container = document.querySelector('.container');
                 const buttonGroup = document.querySelector('.button-group');
+
+                body.classList.remove('pdf-capture-mode');
+                const tempStyle = document.getElementById('pdf-capture-override');
+                if (tempStyle) {
+                    tempStyle.remove();
+                }
                 buttonGroup.style.display = 'flex';
             }
         }
