@@ -476,65 +476,114 @@
         </div>
 
         <div class="button-group">
-            <button class="share-button" onclick="partagerFormulaire()">📤 Partager</button>
+            <button class="share-button" onclick="partagerFormulaireEnPDF()">📤 Partager PDF</button>
             <button class="print-button" onclick="imprimerDocument()">🖨️ Imprimer</button>
         </div>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <script>
         function imprimerDocument() {
             window.print();
         }
 
-        function partagerFormulaire() {
+        async function partagerFormulaireEnPDF() {
+            try {
+                // Masquer les boutons temporairement
+                const buttonGroup = document.querySelector('.button-group');
+                buttonGroup.style.display = 'none';
+
+                // Attendre un peu pour que le DOM se mette à jour
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                // Capturer le formulaire
+                const container = document.querySelector('.container');
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    width: container.offsetWidth,
+                    height: container.offsetHeight
+                });
+
+                // Restaurer les boutons
+                buttonGroup.style.display = 'flex';
+
+                // Créer le PDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('portrait', 'mm', 'a4');
+
+                const imgWidth = 210; // A4 width in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                // Si l'image est trop haute, l'ajuster
+                if (imgHeight > 297) { // A4 height in mm
+                    const ratio = 297 / imgHeight;
+                    const adjustedWidth = imgWidth * ratio;
+                    const adjustedHeight = 297;
+                    pdf.addImage(canvas.toDataURL('image/png'), 'PNG',
+                        (210 - adjustedWidth) / 2, 0, adjustedWidth, adjustedHeight);
+                } else {
+                    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
+                }
+
+                // Générer le nom du fichier avec date
+                const aujourd = new Date();
+                const nomFichier = `Procuration_Vote_${aujourd.getFullYear()}-${String(aujourd.getMonth() + 1).padStart(2, '0')}-${String(aujourd.getDate()).padStart(2, '0')}.pdf`;
+
+                // Créer un blob du PDF
+                const pdfBlob = pdf.output('blob');
+
+                // Partager selon les capacités du navigateur
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([pdfBlob], nomFichier, { type: 'application/pdf' })] })) {
+                    // Partage natif mobile avec fichier
+                    const file = new File([pdfBlob], nomFichier, { type: 'application/pdf' });
+                    await navigator.share({
+                        title: 'Procuration de Vote - PDF',
+                        text: 'Voici ma procuration de vote pour les élections législatives 2025',
+                        files: [file]
+                    });
+                } else {
+                    // Télécharger et options de partage alternatives
+                    pdf.save(nomFichier);
+
+                    // Proposer des options de partage après téléchargement
+                    setTimeout(() => {
+                        const choix = confirm(
+                            "PDF téléchargé avec succès !\n\n" +
+                            "Voulez-vous partager le formulaire par d'autres moyens ?\n\n" +
+                            "OK = Afficher les options de partage\n" +
+                            "Annuler = Terminer"
+                        );
+
+                        if (choix) {
+                            afficherOptionsPartageAvecPDF();
+                        }
+                    }, 1000);
+                }
+
+            } catch (error) {
+                console.error('Erreur lors de la génération du PDF:', error);
+                alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
+
+                // Restaurer les boutons en cas d'erreur
+                const buttonGroup = document.querySelector('.button-group');
+                buttonGroup.style.display = 'flex';
+            }
+        }
+
+        function afficherOptionsPartageAvecPDF() {
             const url = window.location.href;
-            const titre = "Procuration de Vote - Élections Législatives 2025";
-            const texte = "Formulaire de procuration de vote pour les élections législatives du 27 septembre 2025";
-
-            // Vérifier si l'API Web Share est disponible (mobiles)
-            if (navigator.share) {
-                navigator.share({
-                    title: titre,
-                    text: texte,
-                    url: url
-                }).then(() => {
-                    console.log('Partage réussi');
-                }).catch((error) => {
-                    console.log('Erreur de partage:', error);
-                    partageAlternatif(url, titre, texte);
-                });
-            } else {
-                partageAlternatif(url, titre, texte);
-            }
-        }
-
-        function partageAlternatif(url, titre, texte) {
-            // Copier le lien dans le presse-papiers
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(url).then(() => {
-                    alert('Lien copié dans le presse-papiers !\n\n' + url);
-                }).catch(() => {
-                    afficherOptionsPartage(url, titre, texte);
-                });
-            } else {
-                afficherOptionsPartage(url, titre, texte);
-            }
-        }
-
-        function afficherOptionsPartage(url, titre, texte) {
+            const titre = "Procuration de Vote - Formulaire PDF";
+            const texte = "Voici le lien pour télécharger et remplir la procuration de vote pour les élections législatives du 27 septembre 2025";
             const message = `${titre}\n\n${texte}\n\n${url}`;
             const encodedMessage = encodeURIComponent(message);
-            const encodedUrl = encodeURIComponent(url);
-
-            const options = [
-                `WhatsApp: https://wa.me/?text=${encodedMessage}`,
-                `Email: mailto:?subject=${encodeURIComponent(titre)}&body=${encodedMessage}`,
-                `SMS: sms:?body=${encodedMessage}`,
-                `Lien: ${url}`
-            ];
 
             const choix = prompt(
-                "Choisissez votre méthode de partage :\n\n" +
+                "Comment souhaitez-vous partager le lien du formulaire ?\n\n" +
                 "1 - WhatsApp\n" +
                 "2 - Email\n" +
                 "3 - SMS\n" +
@@ -553,21 +602,16 @@
                     window.location.href = `sms:?body=${encodedMessage}`;
                     break;
                 case '4':
-                    // Sélectionner le texte pour copie manuelle
-                    const textArea = document.createElement('textarea');
-                    textArea.value = url;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    try {
-                        document.execCommand('copy');
-                        alert('Lien copié !');
-                    } catch (err) {
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(url).then(() => {
+                            alert('Lien copié dans le presse-papiers !');
+                        });
+                    } else {
                         alert('Lien à copier:\n' + url);
                     }
-                    document.body.removeChild(textArea);
                     break;
                 default:
-                    alert('Lien à partager:\n' + url);
+                    break;
             }
         }
 
