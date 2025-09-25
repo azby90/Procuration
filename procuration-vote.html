@@ -242,6 +242,16 @@
             }
         }
 
+        /* Media query spéciale pour génération PDF - Format A4 fixe */
+        @media print, screen and (min-width: 0px) {
+            .pdf-capture-mode {
+                width: 210mm !important;
+                min-height: 297mm !important;
+                margin: 0 auto !important;
+                transform: none !important;
+            }
+        }
+
         /* Styles pour l'impression */
         @media print {
             @page {
@@ -616,15 +626,16 @@
                 // Restaurer les boutons
                 buttonGroup.style.display = 'flex';
 
-                // Créer le PDF avec qualité optimale
+                // Créer le PDF avec qualité optimale et format A4 forcé
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
                     orientation: 'portrait',
                     unit: 'mm',
-                    format: 'a4',
+                    format: [210, 297], // A4 explicite en mm (comme conseil #2)
                     putOnlyUsedFonts: true,
                     compress: false, // Pas de compression pour qualité maximale
-                    precision: 16
+                    precision: 16,
+                    floatPrecision: 16 // Précision maximale pour éviter distorsions
                 });
 
                 // Dimensions exactes A4
